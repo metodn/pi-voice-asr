@@ -13,3 +13,13 @@ Host my-remote
     RemoteForward 4713 127.0.0.1:4713
     PermitLocalCommand yes
     LocalCommand pactl list short modules | grep -q 'module-native-protocol-tcp.*port=4713' || pactl load-module module-native-protocol-tcp port=4713 listen=127.0.0.1 auth-anonymous=1 >/dev/null
+
+# ---------------------------------------------------------------------------
+# On the REMOTE machine (only for micSource "local"), add to ~/.bashrc so pi
+# records through the forwarded PulseAudio socket whenever the tunnel is up:
+#
+#   [ -n "$SSH_CONNECTION" ] && ss -ltn | grep -q 127.0.0.1:4713 && export PULSE_SERVER=tcp:127.0.0.1:4713
+#
+# The remote also needs a recorder: Debian/Ubuntu `sudo apt install pulseaudio-utils` (parec).
+# Check inside pi with /live-stt doctor. With micSource "server" none of this is needed.
+# ---------------------------------------------------------------------------

@@ -5,8 +5,15 @@ Hold **Space** in [pi](https://pi.dev) and talk. The words appear live in the pr
 Speech recognition runs on your own GPU with [Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR) behind a small WebSocket server. Nothing leaves your network. It also works in pi on remote machines over SSH.
 
 ```
- microphone ──► STT server (Qwen3-ASR, your GPU) ◄──── WebSocket ────► pi + extension
-                                                                       (live text in the prompt)
+micSource "local" (default): the sound card is on the pi machine, the server can be anywhere
+
+  microphone --> pi + extension ---- audio ----> STT server (Qwen3-ASR, your GPU)
+                      ^                                  |
+                      '------------ live text -----------'
+
+micSource "server": the sound card is on the server machine, pi can be anywhere
+
+  microphone --> STT server (Qwen3-ASR, your GPU) ---- live text ----> pi + extension
 ```
 
 ## What is in the box
