@@ -1,0 +1,4 @@
+{
+  "url": "ws://127.0.0.1:8765/v1/stt?sample_rate=16000&encoding=pcm",
+  "micSource": "local"
+}

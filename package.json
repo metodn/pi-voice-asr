@@ -1,0 +1,35 @@
+{
+  "name": "@metodn/pi-voice-asr",
+  "version": "0.1.0",
+  "description": "Hold Space to dictate in pi. Live speech-to-text from a local Qwen3-ASR server, also on remote machines over SSH.",
+  "keywords": ["pi-package", "pi-extension", "voice", "speech-to-text", "dictation", "push-to-talk", "qwen3-asr"],
+  "author": "metodn",
+  "license": "MIT",
+  "homepage": "https://github.com/metodn/pi-voice-asr#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metodn/pi-voice-asr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/metodn/pi-voice-asr/issues"
+  },
+  "files": [
+    "extensions",
+    "server",
+    "examples",
+    "scripts",
+    "README.md",
+    "README-qwen3-asr.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": ["./extensions/live-stt.ts"]
+  }
+}

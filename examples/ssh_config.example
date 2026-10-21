@@ -1,0 +1,15 @@
+# Add to ~/.ssh/config on the machine you sit at (the one with the microphone).
+# Replace the placeholders. See README.md, section "Remote machines".
+
+Host my-remote
+    HostName remote.example
+    User youruser
+
+    # Needed when the remote cannot reach the STT server directly:
+    # the remote's localhost:8765 becomes your STT server.
+    RemoteForward 8765 127.0.0.1:8765
+
+    # Only for micSource "local": forward your PulseAudio so the remote can record your mic.
+    RemoteForward 4713 127.0.0.1:4713
+    PermitLocalCommand yes
+    LocalCommand pactl list short modules | grep -q 'module-native-protocol-tcp.*port=4713' || pactl load-module module-native-protocol-tcp port=4713 listen=127.0.0.1 auth-anonymous=1 >/dev/null

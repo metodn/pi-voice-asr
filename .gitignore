@@ -1,0 +1,14 @@
+# local model weights, environments, build output, logs
+models/
+.venv/
+dist/
+node_modules/
+__pycache__/
+*.pyc
+*.log
+*.pid
+*.wav
+*.mp3
+# machine-specific overrides
+live-stt.json
+.env
