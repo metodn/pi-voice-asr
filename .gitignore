@@ -12,3 +12,8 @@ __pycache__/
 # machine-specific overrides
 live-stt.json
 .env
+run.sh
+_tmp_test/
+
+# server build and weights (large)
+transcribe.cpp/

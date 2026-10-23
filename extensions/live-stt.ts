@@ -18,13 +18,15 @@
  *
  * Config (all optional): ~/.pi/agent/live-stt.json
  *   { "url", "trigger", "micSource", "recorder": ["cmd", ...args], "holdDetectMs", "releaseMs" }
+ * Change the server from inside pi: `/live-stt url 192.168.1.20` (or host:port, or a full ws:// url);
+ * it applies immediately and is saved to the config file.
  * Env overrides: PI_LIVE_STT_URL, PI_LIVE_STT_TRIGGER, PI_LIVE_STT_MIC, PI_LIVE_STT_REC
  *   (PI_LIVE_STT_REC is a shell command that prints raw PCM, handy for testing).
  */
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { CustomEditor, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
@@ -46,24 +48,24 @@ const RECORDERS: string[][] = [
 	["arecord", "-q", "-f", "S16_LE", "-r", "16000", "-c", "1", "-t", "raw"],
 	["ffmpeg", "-loglevel", "error", "-f", "pulse", "-i", "default", "-ar", "16000", "-ac", "1", "-f", "s16le", "-"],
 ];
+const CONFIG_FILE = join(homedir(), ".pi", "agent", "live-stt.json");
 const CONNECT_TIMEOUT_MS = 5000;
 const NO_AUDIO_TIMEOUT_MS = 4000;
 const FINISH_TIMEOUT_MS = 15000;
 
 function loadConfig(): Config {
 	const cfg: Config = {
-		url: "ws://127.0.0.1:8765/v1/stt?sample_rate=16000&encoding=pcm",
+		url: "ws://192.168.7.214:8765/v1/stt?sample_rate=16000&encoding=pcm",
 		trigger: "space",
 		micSource: "local",
 		holdDetectMs: 800,
 		releaseMs: 250,
 	};
-	const file = join(homedir(), ".pi", "agent", "live-stt.json");
-	if (existsSync(file)) {
+	if (existsSync(CONFIG_FILE)) {
 		try {
-			Object.assign(cfg, JSON.parse(readFileSync(file, "utf8")));
+			Object.assign(cfg, JSON.parse(readFileSync(CONFIG_FILE, "utf8")));
 		} catch (error) {
-			console.warn(`live-stt: ignoring bad ${file}: ${error}`);
+			console.warn(`live-stt: ignoring bad ${CONFIG_FILE}: ${error}`);
 		}
 	}
 	if (process.env.PI_LIVE_STT_URL) cfg.url = process.env.PI_LIVE_STT_URL;
@@ -71,6 +73,21 @@ function loadConfig(): Config {
 	if (process.env.PI_LIVE_STT_MIC === "server" || process.env.PI_LIVE_STT_MIC === "local") cfg.micSource = process.env.PI_LIVE_STT_MIC;
 	if (process.env.PI_LIVE_STT_REC) cfg.recorder = ["sh", "-c", process.env.PI_LIVE_STT_REC];
 	return cfg;
+}
+
+/** "host", "host:port" or a full ws(s):// url -> STT websocket url. */
+function toUrl(input: string): string {
+	if (/^wss?:\/\//.test(input)) return input;
+	const hostPort = input.includes(":") ? input : `${input}:8765`;
+	return `ws://${hostPort}/v1/stt?sample_rate=16000&encoding=pcm`;
+}
+
+/** Persist the url into the config file, keeping its other keys. */
+function saveUrl(url: string): void {
+	let saved: Record<string, unknown> = {};
+	if (existsSync(CONFIG_FILE)) saved = JSON.parse(readFileSync(CONFIG_FILE, "utf8"));
+	mkdirSync(dirname(CONFIG_FILE), { recursive: true });
+	writeFileSync(CONFIG_FILE, `${JSON.stringify({ ...saved, url }, null, 2)}\n`);
 }
 
 function pickRecorder(cfg: Config): string[] {
@@ -368,15 +385,32 @@ export default function liveStt(pi: ExtensionAPI) {
 	pi.on("session_shutdown", () => editor?.dispose());
 
 	pi.registerCommand("live-stt", {
-		description: "Live dictation: doctor (check recorder and STT server), status.",
+		description: "Live dictation: status, doctor (check recorder and STT server), url <host[:port]> (change server).",
 		handler: async (args, ctx) => {
-			const action = args.trim().toLowerCase() || "status";
+			const [verb = "", target] = args.trim().split(/\s+/);
+			const action = verb.toLowerCase() || "status";
+			if (action === "url") {
+				if (!target) {
+					ctx.ui.notify(`live-stt url: ${cfg.url}`, "info");
+					return;
+				}
+				cfg.url = toUrl(target);
+				try {
+					saveUrl(cfg.url);
+				} catch (error) {
+					ctx.ui.notify(`live-stt: url set for this session, not saved: ${error}`, "warning");
+					return;
+				}
+				const shadow = process.env.PI_LIVE_STT_URL ? " (PI_LIVE_STT_URL will override it on restart)" : "";
+				ctx.ui.notify(`live-stt url -> ${cfg.url}${shadow}. Try /live-stt doctor`, "info");
+				return;
+			}
 			if (action === "status") {
 				ctx.ui.notify(`live-stt: trigger=${cfg.trigger} mic=${cfg.micSource} url=${cfg.url} PULSE_SERVER=${process.env.PULSE_SERVER ?? "(unset)"}`, "info");
 				return;
 			}
 			if (action !== "doctor") {
-				ctx.ui.notify("Usage: /live-stt [status|doctor]", "error");
+				ctx.ui.notify("Usage: /live-stt [status|doctor|url [host[:port]]]", "error");
 				return;
 			}
 			try {

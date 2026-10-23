@@ -15,7 +15,7 @@
   },
   "files": [
     "extensions",
-    "server",
+    "server/transcribe_server.py",
     "examples",
     "scripts",
     "README.md",
