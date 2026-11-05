@@ -17,7 +17,7 @@
     "extensions",
     "server/transcribe_server.py",
     "server/lfm3_asr_server.py",
-    "run_lfm3_asr.sh",
+    "server/run_lfm3_asr.sh",
     "examples",
     "scripts",
     "README.md",

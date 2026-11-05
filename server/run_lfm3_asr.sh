@@ -3,9 +3,9 @@
 # Drop-in replacement for server/transcribe_server.py: same /v1/stt WebSocket
 # protocol, so the pi live-stt extension works unchanged.
 #
-#   LFM3_ROOT=/path/to/lfm3 ./run_lfm3_asr.sh   # adapter :8765, llama-server :8182
-#   ./run_lfm3_asr.sh --port 8766               # extra args pass to the adapter
-#   ./run_lfm3_asr.sh --language de             # pin a language (default: auto)
+#   LFM3_ROOT=/path/to/lfm3 server/run_lfm3_asr.sh   # adapter :8765, llama-server :8182
+#   server/run_lfm3_asr.sh --port 8766               # extra args pass to the adapter
+#   server/run_lfm3_asr.sh --language de             # pin a language (default: auto)
 #
 # Layout:
 #   - starts llama-server with LFM3-Audio + mmproj on $LLAMA_PORT (8182) if none
@@ -16,7 +16,7 @@
 #       models/mmproj-LFM3-Audio-2B-BF16.gguf
 #     or point LLAMA_BIN, MODEL, MMPROJ at the files directly.
 set -euo pipefail
-cd "$(dirname "$(readlink -f "$0")")"
+cd "$(dirname "$(readlink -f "$0")")/.."   # repo root
 
 # --- paths to the LFM3 model (llama.cpp build + GGUFs) ---
 LFM3_ROOT="${LFM3_ROOT:-$HOME/lfm3}"
