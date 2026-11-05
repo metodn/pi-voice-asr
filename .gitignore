@@ -1,5 +1,6 @@
 # local model weights, environments, build output, logs
 models/
+*RSYNC*
 .venv/
 dist/
 node_modules/
@@ -13,7 +14,10 @@ __pycache__/
 live-stt.json
 .env
 run.sh
+*.local.sh
+_*.sh
 _tmp_test/
 
 # server build and weights (large)
 transcribe.cpp/
+*.out

@@ -66,6 +66,18 @@ Inside pi, point the extension at your server if it is not on the same machine, 
 
 The pi machine needs a microphone and one of `parec`, `pw-record`, `arecord`, `ffmpeg` (Linux), or use `micSource: "server"` below. Tested on Linux with pi 1.3.0 and 1.2.0.
 
+## Alternative backend: LFM3-Audio-2B
+
+[LFM3-Audio-2B](https://huggingface.co/LiquidAI/LFM3-Audio-2B) is Liquid AI's open-weight audio model (license `lfm1.0`, see the model card). `run_lfm3_asr.sh` runs it with llama.cpp's `llama-server` on port 8182 and puts `server/lfm3_asr_server.py` in front of it on port 8765. That server speaks the same `/v1/stt` protocol, so the pi extension needs no changes.
+
+You need a llama.cpp build with LFM3-Audio support and two files from [LFM3-Audio-2B-GGUF](https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF): `LFM3-Audio-2B-Q8_0.gguf` and `mmproj-LFM3-Audio-2B-BF16.gguf`.
+
+```bash
+LFM3_ROOT=/path/to/lfm3 ./run_lfm3_asr.sh   # expects llama.cpp/build/bin/llama-server and models/*.gguf under it
+LLAMA_BIN=... MODEL=... MMPROJ=... ./run_lfm3_asr.sh   # or point at the files directly
+./run_lfm3_asr.sh --language de             # pin a language (default: auto)
+```
+
 ## Controls
 
 | Action | Result |
