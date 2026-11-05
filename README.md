@@ -68,15 +68,45 @@ The pi machine needs a microphone and one of `parec`, `pw-record`, `arecord`, `f
 
 ## Alternative backend: LFM3-Audio-2B
 
-[LFM3-Audio-2B](https://huggingface.co/LiquidAI/LFM3-Audio-2B) is Liquid AI's open-weight audio model (license `lfm1.0`, see the model card). `server/run_lfm3_asr.sh` runs it with llama.cpp's `llama-server` on port 8182 and puts `server/lfm3_asr_server.py` in front of it on port 8765. That server speaks the same `/v1/stt` protocol, so the pi extension needs no changes.
+[LFM3-Audio-2B](https://huggingface.co/LiquidAI/LFM3-Audio-2B) is Liquid AI's open-weight audio model (license `lfm1.0`, see the model card). It runs in llama.cpp instead of transcribe.cpp: `server/run_lfm3_asr.sh` starts `llama-server` on port 8182 and puts `server/lfm3_asr_server.py` in front of it on port 8765. That server speaks the same `/v1/stt` protocol, so the pi extension needs no changes. These steps replace steps 1 and 2 of the quick start.
 
-You need a llama.cpp build with LFM3-Audio support and two files from [LFM3-Audio-2B-GGUF](https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF): `LFM3-Audio-2B-Q8_0.gguf` and `mmproj-LFM3-Audio-2B-BF16.gguf`.
+**1. Build llama.cpp** (release b11960 / v0.8.0 or newer, the first with LFM3-Audio support):
 
 ```bash
-LFM3_ROOT=/path/to/lfm3 server/run_lfm3_asr.sh              # expects llama.cpp/build/bin/llama-server and models/*.gguf under it
-LLAMA_BIN=... MODEL=... MMPROJ=... server/run_lfm3_asr.sh   # or point at the files directly
-server/run_lfm3_asr.sh --language de                        # pin a language (default: auto)
+mkdir -p ~/lfm3 && cd ~/lfm3
+git clone https://github.com/ggml-org/llama.cpp
+cmake -S llama.cpp -B llama.cpp/build -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
+cmake --build llama.cpp/build -j"$(nproc)" --target llama-server
 ```
+
+No NVIDIA GPU? Drop `-DGGML_CUDA=ON` and start the server with `NGL=0`.
+
+**2. Download the model and its audio projector** (1.85 GB + 0.57 GB) from [LFM3-Audio-2B-GGUF](https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF):
+
+```bash
+mkdir -p ~/lfm3/models && cd ~/lfm3/models
+curl -LO https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF/resolve/main/LFM3-Audio-2B-Q8_0.gguf
+curl -LO https://huggingface.co/LiquidAI/LFM3-Audio-2B-GGUF/resolve/main/mmproj-LFM3-Audio-2B-BF16.gguf
+```
+
+**3. Start it** from the repo directory:
+
+```bash
+server/run_lfm3_asr.sh                   # uses ~/lfm3, or set LFM3_ROOT=/path/to/lfm3
+server/run_lfm3_asr.sh --language de     # pin a language (default: auto-detect)
+```
+
+Wait for `llama-server ready at http://127.0.0.1:8182`, then `Uvicorn running on http://0.0.0.0:8765`. llama-server keeps running in the background (log: `server/llama-lfm3.log`) and is reused on the next start. Then install the extension and point it at the server as in step 3 of the quick start.
+
+| Environment variable | Default | Meaning |
+|---|---|---|
+| `LFM3_ROOT` | `~/lfm3` | holds `llama.cpp/build/bin/llama-server` and `models/` |
+| `LLAMA_BIN`, `MODEL`, `MMPROJ` | under `LFM3_ROOT` | point at the files directly, for example the smaller `LFM3-Audio-2B-Q4_K_M.gguf` (1.10 GB) |
+| `LLAMA_PORT` | `8182` | llama-server port |
+| `PORT` | `8765` | adapter port, the one pi connects to |
+| `NGL` | `99` | model layers on the GPU, `0` for CPU only |
+
+Adapter flags go after the script name: `--language`, `--step-sec 1.2` (how often partials update), `--commit-pause-sec 0.8` (silence that freezes an utterance), `--min-decode-sec 0.4` (shortest audio worth decoding).
 
 ## Controls
 
